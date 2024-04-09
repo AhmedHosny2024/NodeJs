@@ -5,7 +5,7 @@ const fs=require('fs'); //file system module (read file)
 // read data when server starts only once
 const data =fs.readFileSync(`${__dirname}/dev-data/data.json`, 'utf-8');
 const dataObj = JSON.parse(data);
-const product =fs.readFileSync(`${__dirname}/templates/product.html`, 'utf-8');
+const tempProduct =fs.readFileSync(`${__dirname}/templates/product.html`, 'utf-8');
 const card =fs.readFileSync(`${__dirname}/templates/template-card.html`, 'utf-8');
 const overview =fs.readFileSync(`${__dirname}/templates/overview.html`, 'utf-8');
 
@@ -16,16 +16,17 @@ const replaceTemplate=(temp,product)=>{
     output=output.replace(/{%Nutrients%}/g,product.nutrients);
     output=output.replace(/{%Quantity%}/g,product.quantity);
     output=output.replace(/{%Price%}/g,product.price);
-    output=output.replace(/{%Description%}/g,product.description);
+    output=output.replace(/{%disc%}/g,product.description);
     output=output.replace(/{%Id%}/g,product.id);
     if(!product.organic) output=output.replace(/{%NotOrganic%}/g,'not-organic');
     return output;
 }
 
 const server=http.createServer((req,res)=>{
-    const pathName=req.url;
+    const {query,pathname}=url.parse(req.url,true);
+
     // overview page
-    if (pathName === '/' || pathName === '/overview') {
+    if (pathname === '/' || pathname === '/overview') {
         res.writeHead(200, {
             'Content-type': 'text/html'
         });
@@ -36,12 +37,16 @@ const server=http.createServer((req,res)=>{
         res.end(output);
     } 
     // product page
-    else if (pathName === '/product') {
-
-        res.end('This is the PRODUCT');
+    else if (pathname === '/product') {
+        const product=dataObj[query.id];
+        res.writeHead(200, {
+            'Content-type': 'text/html'
+        });
+        output=replaceTemplate(tempProduct,product);
+        res.end(output);
     }
     // api page
-    else if (pathName === '/api') {
+    else if (pathname === '/api') {
         res.writeHead(200, {
             'Content-type': 'application/json'
         });
