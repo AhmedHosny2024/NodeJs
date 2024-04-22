@@ -1,14 +1,17 @@
 const express = require('express');
+
 const router = express.Router(); // middleware
 const tourController = require('../controllers/tourController');
 
-router.param('id', tourController.checkID); // checkID middleware
+// router.param('id', tourController.checkID); // checkID middleware
 
-router.route('/')
+router
+  .route('/')
   .get(tourController.getAllTours)
-  .post(tourController.chechBody, tourController.createTour);
+  .post(tourController.createTour);
 
-router.route('/:id')
+router
+  .route('/:id')
   .get(tourController.getTour)
   .patch(tourController.updateTour)
   .delete(tourController.deleteTour);
