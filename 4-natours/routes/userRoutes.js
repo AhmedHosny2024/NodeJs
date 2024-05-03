@@ -1,14 +1,21 @@
 const express = require('express');
-const userRouter = express.Router(); // middleware
+
 const userController = require('../controllers/userController');
+const authController = require('../controllers/authController');
 
-userRouter.route('/')
-    .get(userController.GetAllUsers)
-    .post(userController.CreateUser);
+const router = express.Router(); // middleware
 
-userRouter.route('/:id')
-    .get(userController.GetUser)
-    .patch(userController.UpdateUser)
-    .delete(userController.DeleteUser);
+router.post('/signup', authController.signup);
+router.post('/login', authController.login);
 
-module.exports = userRouter; // export the router to be used in app.js
+router
+  .route('/')
+  .get(userController.GetAllUsers)
+  .post(userController.CreateUser);
+router
+  .route('/:id')
+  .get(userController.GetUser)
+  .patch(userController.UpdateUser)
+  .delete(userController.DeleteUser);
+
+module.exports = router; // export the router to be used in app.js
