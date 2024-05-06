@@ -12,7 +12,7 @@ const filterObj = (obj, ...allowedFields) => {
 
 // Users
 exports.GetAllUsers = catchAsync(async (req, res) => {
-  const users = await User.find();
+  const users = await User.find(/*{ active: { $ne: false } }*/);
   res.status(200).json({
     status: 'success',
     results: users.length,
