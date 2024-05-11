@@ -35,7 +35,8 @@ const tourSchema = new mongoose.Schema(
       type: Number,
       default: 4.5,
       min: [1, 'Rating must be above 1.0'],
-      max: [5, 'Rating must be below 5.0']
+      max: [5, 'Rating must be below 5.0'],
+      set: val => Math.round(val * 10) / 10 // 4.666666666666667 => 46.66666666666667 => 47 => 4.7
     },
     ratingQuantity: {
       type: Number,
@@ -77,7 +78,37 @@ const tourSchema = new mongoose.Schema(
     secretTour: {
       type: Boolean,
       default: false
-    }
+    },
+    startLocation: {
+      // GeoJSON
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point']
+      },
+      coordinates: [Number],
+      address: String,
+      description: String
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point']
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number
+      }
+    ],
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User'
+      }
+    ]
   },
   {
     toJSON: { virtuals: true },
@@ -85,8 +116,19 @@ const tourSchema = new mongoose.Schema(
   }
 );
 
+tourSchema.index({ price: 1, ratingAverage: -1 });
+tourSchema.index({ slug: 1 });
+tourSchema.index({ startLocation: '2dsphere' });
+
 tourSchema.virtual('durationWeeks').get(function () {
   return this.duration / 7;
+});
+
+// Virtual populate
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour',
+  localField: '_id'
 });
 
 // DOCUMENT MIDDLEWARE: runs before .save() and .create()
@@ -100,10 +142,21 @@ tourSchema.pre('save', function (next) {
   console.log('Will save document...');
   next();
 });
+// AGGREGATION MIDDLEWARE 
+// we comment this because we want to run geoNear aggregation in tourController.js (first stage of the aggregation pipeline)
+// here we use regular expression to match all the aggregate methods(aggregate)
+// tourSchema.pre('aggregate', function (next) {
+//   // add a new stage at the beginning of the pipeline
+//   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+//   // console.log(this.pipeline());
+//   next();
+// });
 
-// this is a post middleware will run after the document is saved
-tourSchema.post('save', function (doc, next) {
-  console.log(doc);
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "guides",
+    select: "-__v -passwordChangedAt"
+  })
   next();
 });
 
@@ -116,19 +169,20 @@ tourSchema.pre(/^find/, function (next) {
   next();
 });
 
+// this is a post middleware will run after the document is saved
+tourSchema.post('save', function (doc, next) {
+  console.log(doc);
+  next();
+});
+
+
+
 tourSchema.post(/^find/, function (docs, next) {
   console.log(`Query took ${Date.now() - this.start} milliseconds!`);
   next();
 });
 
-// AGGREGATION MIDDLEWARE
-// here we use regular expression to match all the aggregate methods(aggregate)
-tourSchema.pre('aggregate', function (next) {
-  // add a new stage at the beginning of the pipeline
-  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
-  // console.log(this.pipeline());
-  next();
-});
+
 
 const Tour = mongoose.model('Tour', tourSchema);
 
