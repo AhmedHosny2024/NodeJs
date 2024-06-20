@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const morgan = require('morgan');
 const expressRateLimit = require('express-rate-limit');
@@ -6,14 +7,20 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 
+const cookieParser = require('cookie-parser');
+
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoute');
+const viewRouter = require('./routes/viewRoutes');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 
 const app = express();
+
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views'));
 
 // Middleware (middle between request and response)
 
@@ -33,7 +40,7 @@ const limiter = expressRateLimit({
 app.use('/api', limiter);
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' }));
-
+app.use(cookieParser());
 // Data sanitization against NoSQL query injection (e.g. {"email": {"$gt": ""}}) return all users
 app.use(mongoSanitize());
 
@@ -57,7 +64,7 @@ app.use(
 );
 
 // Serving static files
-app.use(express.static(`${__dirname}/public`));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // app.use((req, res, next) => {
 //   console.log('Hello from the middleware 👋');
@@ -70,6 +77,8 @@ app.use((req, res, next) => {
 });
 
 // Routes
+
+app.use('/', viewRouter);
 app.use('/api/v1/tour', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
